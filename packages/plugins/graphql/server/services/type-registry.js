@@ -1,6 +1,6 @@
 'use strict';
 
-const { isFunction } = require('lodash/fp');
+const { isFunction, isEqual } = require('lodash/fp');
 const { ApplicationError } = require('@strapi/utils').errors;
 
 /**
@@ -25,8 +25,16 @@ const createTypeRegistry = () => {
      * @param {object} [config] An optional config object with any metadata inside
      */
     register(name, definition, config = {}) {
-      if (registry.has(name)) {
-        throw new ApplicationError(`"${name}" has already been registered`);
+      const existing = registry.get(name);
+
+      if (existing) {
+        if (isEqual(existing.definition, definition)) {
+          // Idempotent definition, ignored
+          return this;
+        } else {
+          // Throw on conflicting definition
+          throw new ApplicationError(`"${name}" has already been registered`);
+        }
       }
 
       registry.set(name, { name, definition, config });
